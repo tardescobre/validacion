@@ -16,7 +16,8 @@ urls = [
     "https://raw.githubusercontent.com/tardescobre/validacion/main/feedback3.csv",
     "https://raw.githubusercontent.com/tardescobre/validacion/main/feedback4.csv",
     "https://raw.githubusercontent.com/tardescobre/validacion/main/feedback5.csv",
-    "https://raw.githubusercontent.com/tardescobre/validacion/main/feedback6.csv"
+    "https://raw.githubusercontent.com/tardescobre/validacion/main/feedback6.csv",
+    "https://raw.githubusercontent.com/tardescobre/validacion/main/feedback7.csv"
 ]
 
 dfs = []
@@ -39,3 +40,4 @@ df_combinado.to_csv("feedback_combinado_corregido.csv", index=False, encoding="u
 
 print(f"✅ Archivo generado: feedback_combinado_corregido.csv")
 print(f"Total de filas: {df_combinado.shape[0]}  |  Columnas: {df_combinado.shape[1]}")
+
