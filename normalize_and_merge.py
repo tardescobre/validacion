@@ -9,8 +9,7 @@ import pandas as pd
 
 
 BASE_DIR = Path(__file__).parent
-OUTPUT_DIR = BASE_DIR / "limpios"
-OUTPUT_DIR.mkdir(exist_ok=True)
+# No crear carpeta limpios - procesamiento directo
 
 # Canonical columns for unified export
 CANONICAL_COLS: List[str] = [
@@ -144,7 +143,6 @@ def read_csv_robust(path: Path) -> pd.DataFrame:
 
 def process_all() -> Tuple[List[Path], Path]:
     csv_paths = sorted(BASE_DIR.glob("feedback*.csv"))
-    cleaned_paths: List[Path] = []
     frames: List[pd.DataFrame] = []
 
     for p in csv_paths:
@@ -153,8 +151,8 @@ def process_all() -> Tuple[List[Path], Path]:
             if df.empty:
                 print(f"[WARN] {p.name}: sin filas")
                 continue
-            out = OUTPUT_DIR / f"{p.stem}_limpio.csv"
-            # Limpiar TODOS los caracteres especiales + QUOTE_NONE + delimitador coma
+            
+            # Limpiar TODOS los caracteres especiales directamente
             df_clean = df.copy()
             for col in df_clean.select_dtypes(include=['object']).columns:
                 df_clean[col] = (df_clean[col].astype(str)
@@ -170,10 +168,9 @@ def process_all() -> Tuple[List[Path], Path]:
             # Limpiar espacios múltiples
             for col in df_clean.select_dtypes(include=['object']).columns:
                 df_clean[col] = df_clean[col].str.replace(r'\s+', ' ', regex=True).str.strip()
-            df_clean.to_csv(out, index=False, encoding="utf-8-sig", quoting=3)
-            cleaned_paths.append(out)
+            
             frames.append(df_clean)
-            print(f"[OK]   {p.name} -> {out.name}  filas={len(df_clean)}")
+            print(f"[OK]   {p.name} procesado: {len(df_clean)} filas")
         except Exception as e:
             print(f"[ERROR] {p.name}: {e}")
 
@@ -201,7 +198,7 @@ def process_all() -> Tuple[List[Path], Path]:
         print(f"[OK]   Unificado -> {unified.name}  filas={len(big)}")
     else:
         print("[WARN] No se generó un archivo unificado: no hay datos")
-    return cleaned_paths, unified
+    return [], unified
 
 
 if __name__ == "__main__":
