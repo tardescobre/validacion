@@ -154,10 +154,26 @@ def process_all() -> Tuple[List[Path], Path]:
                 print(f"[WARN] {p.name}: sin filas")
                 continue
             out = OUTPUT_DIR / f"{p.stem}_limpio.csv"
-            df.to_csv(out, index=False, encoding="utf-8-sig")
+            # Limpiar TODOS los caracteres especiales + QUOTE_NONE + delimitador coma
+            df_clean = df.copy()
+            for col in df_clean.select_dtypes(include=['object']).columns:
+                df_clean[col] = (df_clean[col].astype(str)
+                                .str.replace(',', ' ')    # ELIMINAR comas
+                                .str.replace('"', ' ')    # ELIMINAR comillas dobles
+                                .str.replace("'", ' ')    # ELIMINAR comillas simples
+                                .str.replace(';', ' ')    # ELIMINAR punto y coma
+                                .str.replace('\n', ' ')   # Saltos de línea
+                                .str.replace('\r', ' ')   # Retornos de carro
+                                .str.replace('\t', ' ')   # Tabs
+                                .str.replace('|', ' ')    # Pipes
+                                .str.replace('\\', ' '))  # Barras invertidas
+            # Limpiar espacios múltiples
+            for col in df_clean.select_dtypes(include=['object']).columns:
+                df_clean[col] = df_clean[col].str.replace(r'\s+', ' ', regex=True).str.strip()
+            df_clean.to_csv(out, index=False, encoding="utf-8-sig", quoting=3)
             cleaned_paths.append(out)
-            frames.append(df)
-            print(f"[OK]   {p.name} -> {out.name}  filas={len(df)}")
+            frames.append(df_clean)
+            print(f"[OK]   {p.name} -> {out.name}  filas={len(df_clean)}")
         except Exception as e:
             print(f"[ERROR] {p.name}: {e}")
 
@@ -166,7 +182,22 @@ def process_all() -> Tuple[List[Path], Path]:
         big = pd.concat(frames, ignore_index=True)
         # Remove exact duplicate rows across files, keep first
         big = big.drop_duplicates()
-        big.to_csv(unified, index=False, encoding="utf-8-sig")
+        # Limpiar TODOS los caracteres especiales en el unificado
+        for col in big.select_dtypes(include=['object']).columns:
+            big[col] = (big[col].astype(str)
+                       .str.replace(',', ' ')    # ELIMINAR comas
+                       .str.replace('"', ' ')    # ELIMINAR comillas dobles
+                       .str.replace("'", ' ')    # ELIMINAR comillas simples
+                       .str.replace(';', ' ')    # ELIMINAR punto y coma
+                       .str.replace('\n', ' ')   # Saltos de línea
+                       .str.replace('\r', ' ')   # Retornos de carro
+                       .str.replace('\t', ' ')   # Tabs
+                       .str.replace('|', ' ')    # Pipes
+                       .str.replace('\\', ' '))  # Barras invertidas
+        # Limpiar espacios múltiples
+        for col in big.select_dtypes(include=['object']).columns:
+            big[col] = big[col].str.replace(r'\s+', ' ', regex=True).str.strip()
+        big.to_csv(unified, index=False, encoding="utf-8-sig", quoting=3)
         print(f"[OK]   Unificado -> {unified.name}  filas={len(big)}")
     else:
         print("[WARN] No se generó un archivo unificado: no hay datos")

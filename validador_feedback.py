@@ -5,28 +5,28 @@ from datetime import datetime
 
 def validar_y_limpiar_texto(texto, campo_nombre="campo"):
     """
-    Valida y limpia texto para evitar problemas de CSV
+    Valida y limpia texto eliminando TODOS los caracteres especiales problemáticos
     """
     if not texto or pd.isna(texto):
         return ""
     
     texto = str(texto).strip()
     
-    # 1. Eliminar caracteres problemáticos
-    texto = texto.replace('"', "'")  # Reemplazar comillas dobles por simples
+    # 1. Eliminar TODOS los caracteres problemáticos para CSV
+    texto = texto.replace(',', ' ')   # ELIMINAR comas (causan división)
+    texto = texto.replace('"', ' ')   # ELIMINAR comillas dobles
+    texto = texto.replace("'", ' ')   # ELIMINAR comillas simples
+    texto = texto.replace(';', ' ')   # ELIMINAR punto y coma
     texto = texto.replace('\n', ' ')  # Saltos de línea por espacios
     texto = texto.replace('\r', ' ')  # Retornos de carro por espacios
     texto = texto.replace('\t', ' ')  # Tabs por espacios
+    texto = texto.replace('|', ' ')   # Pipes
+    texto = texto.replace('\\', ' ')  # Barras invertidas
     
-    # 2. Limitar comas excesivas
-    if texto.count(',') > 3:
-        print(f"⚠️ Advertencia: {campo_nombre} tiene muchas comas, se limitarán")
-        texto = texto.replace(',', ' -')  # Reemplazar comas por guiones
-    
-    # 3. Espacios múltiples
+    # 2. Espacios múltiples
     texto = re.sub(r'\s+', ' ', texto)
     
-    # 4. Validar longitud
+    # 3. Validar longitud
     if len(texto) > 500:
         print(f"⚠️ Advertencia: {campo_nombre} muy largo, se truncará")
         texto = texto[:497] + "..."
@@ -106,7 +106,23 @@ def guardar_feedback_seguro(nueva_fila_dict, archivo_path):
     
     # 5. Guardar con encoding seguro
     try:
-        df_final.to_csv(archivo_path, index=False, encoding='utf-8-sig', quoting=1)
+        # Limpiar TODOS los caracteres especiales + QUOTE_NONE
+        df_clean = df_final.copy()
+        for col in df_clean.select_dtypes(include=['object']).columns:
+            df_clean[col] = (df_clean[col].astype(str)
+                            .str.replace(',', ' ')    # ELIMINAR comas
+                            .str.replace('"', ' ')    # ELIMINAR comillas dobles
+                            .str.replace("'", ' ')    # ELIMINAR comillas simples
+                            .str.replace(';', ' ')    # ELIMINAR punto y coma
+                            .str.replace('\n', ' ')   # Saltos de línea
+                            .str.replace('\r', ' ')   # Retornos de carro
+                            .str.replace('\t', ' ')   # Tabs
+                            .str.replace('|', ' ')    # Pipes
+                            .str.replace('\\', ' '))  # Barras invertidas
+        # Limpiar espacios múltiples
+        for col in df_clean.select_dtypes(include=['object']).columns:
+            df_clean[col] = df_clean[col].str.replace(r'\s+', ' ', regex=True).str.strip()
+        df_clean.to_csv(archivo_path, index=False, encoding='utf-8-sig', quoting=3)
         return True, []
     except Exception as e:
         return False, [f"Error guardando archivo: {e}"]
